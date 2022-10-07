@@ -1,8 +1,58 @@
-import '../styles/globals.css'
-import type { AppProps } from 'next/app'
-
-function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />
+import React, { useMemo } from "react";
+import type { AppProps } from 'next/app';
+import { CacheProvider, EmotionCache } from '@emotion/react';
+import { ThemeProvider, CssBaseline, createTheme } from '@mui/material';
+import { useRouter } from "next/router";
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import "react-toastify/dist/ReactToastify.css";
+import createEmotionCache from '../utility/createEmotionCache';
+import { ToastContainer } from "react-toastify";
+import { publishRouter, routerNotLogin, privateRouter } from '../constants/router';
+import { wrapper } from "../redux/store";
+import lightThemeOptions from '../styles/theme/lightThemeOptions';
+import BasicLayout from '../components/Layout';
+import '../styles/globals.css';
+interface MyAppProps extends AppProps {
+  emotionCache?: EmotionCache;
 }
 
-export default MyApp
+const clientSideEmotionCache = createEmotionCache();
+
+const lightTheme = createTheme(lightThemeOptions);
+
+const MyApp: React.FunctionComponent<MyAppProps> = (props) => {
+  const { Component, emotionCache = clientSideEmotionCache, pageProps } = props;
+  const router = useRouter();
+
+  const currentRouter: any = useMemo(() => [...publishRouter, ...routerNotLogin, ...privateRouter].find(x => x.pathName === router.pathname), [router])
+
+  if (typeof window === 'undefined') {
+    return <></>;
+  } else {
+    return (
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={lightTheme}>
+          <CssBaseline />
+          <>
+            {currentRouter?.layout ? (
+              <currentRouter.layout>
+                <Component {...pageProps} />
+                <ToastContainer />
+              </currentRouter.layout>
+            ) : (
+              <BasicLayout>
+                <Component {...pageProps} />
+                <ToastContainer />
+              </BasicLayout>
+            )}
+          </>
+        </ThemeProvider>
+      </CacheProvider>
+    );
+  }
+};
+
+export default wrapper.withRedux(MyApp);
